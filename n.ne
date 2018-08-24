@@ -20,7 +20,9 @@ let lexer = moo.compile({
     conjunction: [
         'and',
         'then',
-        ',',
+    ],
+    conjunctionPunctuation: [
+        ','
     ],
     noun: [
         'rock',
@@ -82,22 +84,12 @@ let lexer = moo.compile({
 input -> %WS:? sentence %WS:? %terminator %WS
     | %WS:? sentence %WS:? %terminator:?
     | input %WS %conjunction %WS input {% (data) => [data[0], data[4]] %}
+    | input %conjunctionPunctuation %WS input {% (data) => [data[0], data[4]] %}
     | input %terminator %WS input {% (data) => [data[0], data[4]] %}
-# sentence ->
-# sentence %terminator {% id %}
-#     | %WS sentence {% (data) => data[1] %}
-#     | sentence %WS {% id %}
-# between
 
 sentence -> verbPhrase {% id %}
-    # | verbPhrase {% id %}
     | adverbPhrase %WS verbPhrase {%
     function([adverb, _, verb], location, reject) {
-        // let firstChar = data[0].value[0]
-        // if (firstChar === ' ' || firstChar === '\t') {
-            // data.shift()
-        // }
-        // let [adverb, _, verb] = data
         verb = Object.assign({}, verb)
         verb.modifiers = verb.modifiers.slice()
         verb.modifiers.push(adverb)
@@ -105,11 +97,6 @@ sentence -> verbPhrase {% id %}
     } %}
     | verbPhrase %WS adverbPhrase {%
     function([verb, _, adverb], location, reject) {
-        // let firstChar = data[0].value[0]
-        // if (firstChar === ' ' || firstChar === '\t') {
-            // data.shift()
-        // }
-        // let  = data
         verb = Object.assign({}, verb)
         verb.modifiers = verb.modifiers.slice()
         verb.modifiers.push(adverb)
@@ -147,8 +134,10 @@ adverbPhrase -> %adverb {% id %}
 nounPhrase -> singleNoun
     | nounPhrase %WS %conjunction %WS nounPhrase {%
     function([noun1, _, conjunction, __, noun2], location, reject) {
-        // noun1.descriptors = []
-        // noun2.descriptors = []
+        return [noun1, noun2]
+    } %}
+    | nounPhrase %WS:? %conjunctionPunctuation %WS nounPhrase {%
+    function([noun1, _, conjunction, __, noun2], location, reject) {
         return [noun1, noun2]
     } %}
 

@@ -22,7 +22,9 @@ let lexer = moo.compile({
     conjunction: [
         'and',
         'then',
-        ',',
+    ],
+    conjunctionPunctuation: [
+        ','
     ],
     noun: [
         'rock',
@@ -79,15 +81,13 @@ var grammar = {
     {"name": "input$ebnf$5", "symbols": [], "postprocess": function(d) {return null;}},
     {"name": "input", "symbols": ["input$ebnf$3", "sentence", "input$ebnf$4", "input$ebnf$5"]},
     {"name": "input", "symbols": ["input", (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("conjunction") ? {type: "conjunction"} : conjunction), (lexer.has("WS") ? {type: "WS"} : WS), "input"], "postprocess": (data) => [data[0], data[4]]},
-    {"name": "input", "symbols": ["input", (lexer.has("terminator") ? {type: "terminator"} : terminator), (lexer.has("WS") ? {type: "WS"} : WS), "input"], "postprocess": (data) => [data[0], data[4]]},
+    {"name": "input", "symbols": ["input", (lexer.has("conjunctionPunctuation") ? {type: "conjunctionPunctuation"} : conjunctionPunctuation), (lexer.has("WS") ? {type: "WS"} : WS), "input"], "postprocess": (data) => [data[0], data[4]]},
+    {"name": "input$ebnf$6", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
+    {"name": "input$ebnf$6", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "input", "symbols": ["input", "input$ebnf$6", (lexer.has("terminator") ? {type: "terminator"} : terminator), (lexer.has("WS") ? {type: "WS"} : WS), "input"], "postprocess": (data) => [data[0], data[4]]},
     {"name": "sentence", "symbols": ["verbPhrase"], "postprocess": id},
     {"name": "sentence", "symbols": ["adverbPhrase", (lexer.has("WS") ? {type: "WS"} : WS), "verbPhrase"], "postprocess": 
         function([adverb, _, verb], location, reject) {
-            // let firstChar = data[0].value[0]
-            // if (firstChar === ' ' || firstChar === '\t') {
-                // data.shift()
-            // }
-            // let [adverb, _, verb] = data
             verb = Object.assign({}, verb)
             verb.modifiers = verb.modifiers.slice()
             verb.modifiers.push(adverb)
@@ -95,11 +95,6 @@ var grammar = {
         } },
     {"name": "sentence", "symbols": ["verbPhrase", (lexer.has("WS") ? {type: "WS"} : WS), "adverbPhrase"], "postprocess": 
         function([verb, _, adverb], location, reject) {
-            // let firstChar = data[0].value[0]
-            // if (firstChar === ' ' || firstChar === '\t') {
-                // data.shift()
-            // }
-            // let  = data
             verb = Object.assign({}, verb)
             verb.modifiers = verb.modifiers.slice()
             verb.modifiers.push(adverb)
@@ -133,8 +128,12 @@ var grammar = {
     {"name": "nounPhrase", "symbols": ["singleNoun"]},
     {"name": "nounPhrase", "symbols": ["nounPhrase", (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("conjunction") ? {type: "conjunction"} : conjunction), (lexer.has("WS") ? {type: "WS"} : WS), "nounPhrase"], "postprocess": 
         function([noun1, _, conjunction, __, noun2], location, reject) {
-            // noun1.descriptors = []
-            // noun2.descriptors = []
+            return [noun1, noun2]
+        } },
+    {"name": "nounPhrase$ebnf$1", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
+    {"name": "nounPhrase$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nounPhrase", "symbols": ["nounPhrase", "nounPhrase$ebnf$1", (lexer.has("conjunctionPunctuation") ? {type: "conjunctionPunctuation"} : conjunctionPunctuation), (lexer.has("WS") ? {type: "WS"} : WS), "nounPhrase"], "postprocess": 
+        function([noun1, _, conjunction, __, noun2], location, reject) {
             return [noun1, noun2]
         } },
     {"name": "singleNoun", "symbols": [(lexer.has("noun") ? {type: "noun"} : noun)], "postprocess": 
