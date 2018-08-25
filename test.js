@@ -8,7 +8,5 @@ const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))
 parser.feed(' pick the stick and a red rock up quickly . and get rock . ')
 
 // parser.results is an array of possible parsings.
-// console.log('foo') // [[[[ "foo" ],"\n" ]]]
-// console.log(parser.results) // [[[[ "foo" ],"\n" ]]]
 console.log(JSON.stringify(parser.results, null, 4))
 console.log(JSON.stringify(parser.results.length, null, 4))

@@ -58,21 +58,14 @@ let lexer = moo.compile({
     string: /"(?:\\["\\]|[^\n"\\])*"/,
     number: /0|[1-9][0-9]*/,
     // TODO: should these be non greedy?
-    WS: /[ \t]+/,
     // Remember that one of the format functions below must match this.
+    WS: /[ \t]+/,
     word: /[a-zA-Z]/
-    // ...
 })
 %}
 
 # Pass your lexer object using the @lexer option:
 @lexer lexer
-
-# Use %token to match any token of that type instead of "token":
-# multiplication -> %number %ws %times %ws %number {% ([first, , , , second]) => first * second %}
-
-# Literal strings now match tokens with that text:
-# trig -> "sin" %number
 
 # @{%
 # function selfPlus(id) {
@@ -81,12 +74,7 @@ let lexer = moo.compile({
 #     }
 # }
 # %}
-input -> %WS:? sentence delimiter sentence T:? %WS:?
-# input -> %WS:? sentence %WS:? %terminator %WS
-#     | %WS:? sentence %WS:? %terminator:?
-#     | input %WS %conjunction %WS input {% (data) => [data[0], data[4]] %}
-#     | input %conjunctionPunctuation %WS input {% (data) => [data[0], data[4]] %}
-#     | input %terminator %WS input {% (data) => [data[0], data[4]] %}
+input -> %WS:? sentence delimiter sentence T:? %WS:? {% ([, sentence1, , sentence2]) => [sentence1, sentence2] %}
 
 T -> %WS:? %terminator
 
@@ -101,14 +89,14 @@ delimiter -> T %WS
 
 sentence -> verbPhrase {% id %}
     | adverbPhrase %WS verbPhrase {%
-    function([adverb, _, verb], location, reject) {
+    function([adverb, , verb], location, reject) {
         verb = Object.assign({}, verb)
         verb.modifiers = verb.modifiers.slice()
         verb.modifiers.push(adverb)
         return verb
     } %}
     | verbPhrase %WS adverbPhrase {%
-    function([verb, _, adverb], location, reject) {
+    function([verb, , adverb], location, reject) {
         verb = Object.assign({}, verb)
         verb.modifiers = verb.modifiers.slice()
         verb.modifiers.push(adverb)
@@ -116,25 +104,25 @@ sentence -> verbPhrase {% id %}
     } %}
 
 verbPhrase -> %verb %WS nounPhrase {%
-    function([verb, _, noun], location, reject) {
+    function([verb, , noun], location, reject) {
         verb.object = noun
         verb.modifiers = []
         return verb
     } %}
     | %verb %WS %preposition %WS nounPhrase {%
-    function([verb, _, preposition, __, noun], location, reject) {
+    function([verb, , preposition, , noun], location, reject) {
         verb.object = noun
         verb.modifiers = [preposition]
         return verb
     } %}
     | %verb %WS nounPhrase %WS %preposition {%
-    function([verb, _, noun, __, preposition], location, reject) {
+    function([verb, , noun, , preposition], location, reject) {
         verb.object = noun
         verb.modifiers = [preposition]
         return verb
     } %}
     | verbPhrase %WS prepositionPhrase {%
-    function([verb, _, [preposition, __, noun]], location, reject) {
+    function([verb, , [preposition, , noun]], location, reject) {
         verb.indirect = noun
         return verb
     } %}
@@ -145,11 +133,11 @@ adverbPhrase -> %adverb {% id %}
 
 nounPhrase -> singleNoun
     | nounPhrase %WS %conjunction %WS nounPhrase {%
-    function([noun1, _, conjunction, __, noun2], location, reject) {
+    function([noun1, , conjunction, , noun2], location, reject) {
         return [noun1, noun2]
     } %}
     | nounPhrase %WS:? %conjunctionPunctuation %WS nounPhrase {%
-    function([noun1, _, conjunction, __, noun2], location, reject) {
+    function([noun1, , conjunction, , noun2], location, reject) {
         return [noun1, noun2]
     } %}
 
@@ -160,44 +148,12 @@ singleNoun -> %noun {%
         return noun
     } %}
     | %adjective %WS singleNoun {%
-    function([adjective, _, noun], location, reject) {
+    function([adjective, , noun], location, reject) {
         noun.descriptors.push(adjective)
         return noun
     } %}
     | %deteterminer %WS singleNoun {%
-    function([determiner, _, noun], location, reject) {
+    function([determiner, , noun], location, reject) {
         noun.determiner = determiner
         return noun
     } %}
-
-
-# S -> VP {% selfPlus('S') %}
-
-# VP -> v __ NP {% selfPlus('VP') %}
-
-# PP -> p __ NP {% selfPlus('PP') %}
-
-# NP -> n {% selfPlus('NP') %}
-#     | adj __ n {% selfPlus('NP') %}
-#     | det __ n {% selfPlus('NP') %}
-
-# n -> "rock" {% id %}
-#     | "thing" {% id %}
-#     | "stick" {% id %}
-
-# p -> "with" {% id %}
-#     | "up" {% id %}
-#     | "in" {% id %}
-#     | "at" {% id %}
-
-# v -> "pick" {% id %}
-#     | "put" {% id %}
-#     | "get" {% id %}
-
-# det -> "a" {% id %}
-#     | "the" {% id %}
-
-# adj -> "red" {% id %}
-#     | "old" {% id %}
-
-# __ -> [ \t\n\v\f] {% () => '__' %}
