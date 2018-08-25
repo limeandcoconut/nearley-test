@@ -5,7 +5,7 @@ const grammar = require('./n.js')
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))
 
 // Parse something!
-parser.feed(' pick the stick and a red rock up quickly . get rock.')
+parser.feed(' pick the stick and a red rock up quickly . and get rock . ')
 
 // parser.results is an array of possible parsings.
 // console.log('foo') // [[[[ "foo" ],"\n" ]]]

@@ -81,11 +81,23 @@ let lexer = moo.compile({
 #     }
 # }
 # %}
-input -> %WS:? sentence %WS:? %terminator %WS
-    | %WS:? sentence %WS:? %terminator:?
-    | input %WS %conjunction %WS input {% (data) => [data[0], data[4]] %}
-    | input %conjunctionPunctuation %WS input {% (data) => [data[0], data[4]] %}
-    | input %terminator %WS input {% (data) => [data[0], data[4]] %}
+input -> %WS:? sentence delimiter sentence T:? %WS:?
+# input -> %WS:? sentence %WS:? %terminator %WS
+#     | %WS:? sentence %WS:? %terminator:?
+#     | input %WS %conjunction %WS input {% (data) => [data[0], data[4]] %}
+#     | input %conjunctionPunctuation %WS input {% (data) => [data[0], data[4]] %}
+#     | input %terminator %WS input {% (data) => [data[0], data[4]] %}
+
+T -> %WS:? %terminator
+
+delimiter -> T %WS
+    # Consider adding:
+    # and,
+    # Consider adding:
+    # | T %WS:? %conjunction %WS
+    # And normalizing for allowing a lack of space like so: "N,and N"
+    | T:? %WS %conjunction %WS
+    | %WS:? %conjunctionPunctuation %WS
 
 sentence -> verbPhrase {% id %}
     | adverbPhrase %WS verbPhrase {%
