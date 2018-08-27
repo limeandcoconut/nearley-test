@@ -5,23 +5,10 @@ function id(x) { return x[0]; }
 
 const moo = require('moo')
 let lexer = moo.compile({
-    // name: {
-    //     match: /[a-z]+(?=[^0-9])(?=\s+)/,
-    //     keywords: {
-    //         'kw-class': 'class',
-    //         'kw-def': 'def',
-    //         'kw-if': 'if',
-    //     },
-    // },
-    // identifier: {
-    //     match: /[a-z0-9]+/,
-    //     keywords: {
-    //         'kw2-test': 'test1',
-    //     },
-    // },
     complexAdjective: [
-        /(?:(?:your|my) )?aunt(?:ie)? gave (?:you|me)/,
-        /(?:you|i)? don\'?t know what(?: it is)?/,
+        'aaa',
+        /(?:your |my )?aunt(?:ie)? gave(?: you| me)/,
+        /(?:you |i )?don\'?t know what(?: it is)?/,
     ],
     adjectivalPronoun: [
         'which',
@@ -172,6 +159,7 @@ var grammar = {
             if (verb[key]) {
                 return reject
             }
+            verb = Object.assign({}, verb)
             verb[key] = noun
             return verb
         } },
@@ -201,7 +189,6 @@ var grammar = {
         } },
     {"name": "singleNoun", "symbols": [(lexer.has("noun") ? {type: "noun"} : noun), (lexer.has("WS") ? {type: "WS"} : WS), "adjectivePhrase"], "postprocess": 
         function([noun, , adjectives], location, reject) {
-            //console.log(arguments)
             // noun = Object.assign({}, noun)
             // noun.descriptors = noun.descriptors.slice()
             noun.descriptors = [...adjectives]
@@ -214,9 +201,7 @@ var grammar = {
             noun.descriptors.push(adjective)
             return noun
         } },
-    {"name": "singleNoun$ebnf$1", "symbols": [(lexer.has("adjective") ? {type: "adjective"} : adjective)], "postprocess": id},
-    {"name": "singleNoun$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "singleNoun", "symbols": [(lexer.has("noun") ? {type: "noun"} : noun), (lexer.has("WS") ? {type: "WS"} : WS), "singleNoun$ebnf$1", (lexer.has("WS") ? {type: "WS"} : WS), "adjectivePhrase"], "postprocess": 
+    {"name": "singleNoun", "symbols": [(lexer.has("noun") ? {type: "noun"} : noun), (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("adjective") ? {type: "adjective"} : adjective), (lexer.has("WS") ? {type: "WS"} : WS), "adjectivePhrase"], "postprocess": 
         function([noun, , adjective, , adjectives], location, reject) {
             // noun = Object.assign({}, noun)
             // noun.descriptors = noun.descriptors.slice()

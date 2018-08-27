@@ -3,23 +3,10 @@
 @{%
 const moo = require('moo')
 let lexer = moo.compile({
-    // name: {
-    //     match: /[a-z]+(?=[^0-9])(?=\s+)/,
-    //     keywords: {
-    //         'kw-class': 'class',
-    //         'kw-def': 'def',
-    //         'kw-if': 'if',
-    //     },
-    // },
-    // identifier: {
-    //     match: /[a-z0-9]+/,
-    //     keywords: {
-    //         'kw2-test': 'test1',
-    //     },
-    // },
     complexAdjective: [
-        /(?:(?:your|my) )?aunt(?:ie)? gave (?:you|me)/,
-        /(?:you|i)? don\'?t know what(?: it is)?/,
+        'aaa',
+        /(?:your |my )?aunt(?:ie)? gave(?: you| me)/,
+        /(?:you |i )?don\'?t know what(?: it is)?/,
     ],
     adjectivalPronoun: [
         'which',
@@ -99,15 +86,7 @@ let prepositionTypes = {
 # Pass your lexer object using the @lexer option:
 @lexer lexer
 
-# @{%
-# function selfPlus(id) {
-#     return function (data, location, reject) {
-#         return `${id}->{ ${data.join(' ')} }`
-#     }
-# }
-# %}
 line -> %WS:? (input | incompleteSentence) T:? %WS:? {% ([, [input]]) => input %}
-    # | %WS:? incompleteSentence T:? %WS:?
 
 input -> sentence {% ([sentence]) => [sentence] %}
     | sentence D input {% ([sentence, , sentences]) => [sentence, ...sentences] %}
@@ -136,29 +115,7 @@ incompleteSentence -> %verb {% (sentence) => {
         verb.modifiers = [adverb]
         return [verb]
     } %}
-    | nounPhrase #{% (data) => {console.log(data); return [data[0]]} %}
-    # | nounPhrase {% id %}
-# incompleteSentence -> (adverbPhrase %WS):? %verb (%WS %adverbialPreposition):? {% ([adverb1, verb, adverb2]) => {
-#     adverb1 = adverb1 ? adverb2[0] : adverb1
-#     adverb2 = adverb2 ? adverb2[1] : adverb2
-#     verb.modifiers = [adverb1, adverb2]
-#     return verb
-# } %}
-# incompleteSentence -> (adverbPhrase %WS):? %verb (%WS %adverbialPreposition):? {% ([adverb1, verb, adverb2]) => {
-#     adverb1 = adverb1 ? adverb2[0] : adverb1
-#     adverb2 = adverb2 ? adverb2[1] : adverb2
-#     verb.modifiers = [adverb1, adverb2]
-#     return verb
-# } %}
-
-# incompleteVerbPhrase -> verb
-#     | verb (%WS %adverbialPreposition):?
-
-# incompleteSentence -> incompleteVerbPhrase
-#     | adverbPhrase %WS incompleteVerbPhrase
-
-# incompleteVerbPhrase -> verb
-#     | verb %WS %adverbialPreposition
+    | nounPhrase
 
 sentence -> verbPhrase {% id %}
     | adverbPhrase %WS verbPhrase {%
@@ -200,6 +157,7 @@ verbPhrase -> %verb %WS nounPhrase {%
         if (verb[key]) {
             return reject
         }
+        verb = Object.assign({}, verb)
         verb[key] = noun
         return verb
     } %}
@@ -232,7 +190,6 @@ singleNoun -> %noun {%
     } %}
     | %noun %WS adjectivePhrase {%
     function([noun, , adjectives], location, reject) {
-        //console.log(arguments)
         // noun = Object.assign({}, noun)
         // noun.descriptors = noun.descriptors.slice()
         noun.descriptors = [...adjectives]
@@ -246,7 +203,7 @@ singleNoun -> %noun {%
         return noun
     } %}
     # Still unsure about this one.
-    | %noun %WS %adjective:? %WS adjectivePhrase {%
+    | %noun %WS %adjective %WS adjectivePhrase {%
     function([noun, , adjective, , adjectives], location, reject) {
         // noun = Object.assign({}, noun)
         // noun.descriptors = noun.descriptors.slice()
@@ -262,12 +219,4 @@ singleNoun -> %noun {%
 
 adjectivePhrase -> (%adjectivalPronoun %WS):? %complexAdjective  {% ([, adjective]) => [adjective] %}
     | (%adjectivalPronoun %WS):? %complexAdjective (%WS:? %conjunctionPunctuation):? %WS adjectivePhrase {% ([, adjective1, , , [adjective2]]) => [adjective1, adjective2] %}
-    # | %complexAdjective {% (data) => {
-    #     let [adjective] = data
-    #     return adjective
-    # } %}
-    # | %complexAdjective {% (data) => {
-    #     console.log('yo')
-    #     let [adjective] = data
-    #     return adjective
-    # } %}
+
