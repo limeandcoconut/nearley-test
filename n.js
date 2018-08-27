@@ -19,6 +19,13 @@ let lexer = moo.compile({
     //         'kw2-test': 'test1',
     //     },
     // },
+    complexAdjective: [
+        /(?:(?:your|my) )?aunt(?:ie)? gave (?:you|me)/,
+        /(?:you|i)? don\'?t know what(?: it is)?/,
+    ],
+    adjectivalPronoun: [
+        'which',
+    ],
     conjunction: [
         'and',
         'then',
@@ -29,12 +36,16 @@ let lexer = moo.compile({
     noun: [
         'rock',
         'stick',
+        'everything',
+        'all',
         'thing',
     ],
     verb: [
         'get',
+        'take',
         'put',
         'pick',
+        'say',
     ],
     deteterminer: [
         'a',
@@ -48,7 +59,20 @@ let lexer = moo.compile({
         'at',
         'in',
         'with',
-        'up'
+        'using',
+        'from',
+        'except',
+    ],
+    pronoun: [
+        'it',
+        'them',
+        'those',
+        'him',
+        'her',
+        'us',
+    ],
+    adverbialPreposition: [
+        'up',
     ],
     adverb: [
         'quickly',
@@ -61,29 +85,39 @@ let lexer = moo.compile({
     number: /0|[1-9][0-9]*/,
     // TODO: should these be non greedy?
     // Remember that one of the format functions below must match this.
+    // Consider adding a token that includes a "," for occasions when that would be allowed and ignored.
     WS: /[ \t]+/,
     word: /[a-zA-Z]/
 })
+
+let prepositionTypes = {
+    from: 'from',
+    except: 'except',
+    using: 'tool',
+    with: 'tool',
+}
 var grammar = {
     Lexer: lexer,
     ParserRules: [
-    {"name": "input$ebnf$1", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
-    {"name": "input$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "input$ebnf$2", "symbols": ["T"], "postprocess": id},
-    {"name": "input$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "input$ebnf$3", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
-    {"name": "input$ebnf$3", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "input", "symbols": ["input$ebnf$1", "sentence", "delimiter", "sentence", "input$ebnf$2", "input$ebnf$3"], "postprocess": ([, sentence1, , sentence2]) => [sentence1, sentence2]},
+    {"name": "line$ebnf$1", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
+    {"name": "line$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "line$ebnf$2", "symbols": ["T"], "postprocess": id},
+    {"name": "line$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "line$ebnf$3", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
+    {"name": "line$ebnf$3", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "line", "symbols": ["line$ebnf$1", "input", "line$ebnf$2", "line$ebnf$3"], "postprocess": ([, input]) => input},
+    {"name": "input", "symbols": ["sentence"], "postprocess": ([sentence]) => [sentence]},
+    {"name": "input", "symbols": ["sentence", "D", "input"], "postprocess": ([sentence, , sentences]) => [sentence, ...sentences]},
     {"name": "T$ebnf$1", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
     {"name": "T$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
     {"name": "T", "symbols": ["T$ebnf$1", (lexer.has("terminator") ? {type: "terminator"} : terminator)]},
-    {"name": "delimiter", "symbols": ["T", (lexer.has("WS") ? {type: "WS"} : WS)]},
-    {"name": "delimiter$ebnf$1", "symbols": ["T"], "postprocess": id},
-    {"name": "delimiter$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "delimiter", "symbols": ["delimiter$ebnf$1", (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("conjunction") ? {type: "conjunction"} : conjunction), (lexer.has("WS") ? {type: "WS"} : WS)]},
-    {"name": "delimiter$ebnf$2", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
-    {"name": "delimiter$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "delimiter", "symbols": ["delimiter$ebnf$2", (lexer.has("conjunctionPunctuation") ? {type: "conjunctionPunctuation"} : conjunctionPunctuation), (lexer.has("WS") ? {type: "WS"} : WS)]},
+    {"name": "D", "symbols": ["T", (lexer.has("WS") ? {type: "WS"} : WS)]},
+    {"name": "D$ebnf$1", "symbols": ["T"], "postprocess": id},
+    {"name": "D$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "D", "symbols": ["D$ebnf$1", (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("conjunction") ? {type: "conjunction"} : conjunction), (lexer.has("WS") ? {type: "WS"} : WS)]},
+    {"name": "D$ebnf$2", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
+    {"name": "D$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "D", "symbols": ["D$ebnf$2", (lexer.has("conjunctionPunctuation") ? {type: "conjunctionPunctuation"} : conjunctionPunctuation), (lexer.has("WS") ? {type: "WS"} : WS)]},
     {"name": "sentence", "symbols": ["verbPhrase"], "postprocess": id},
     {"name": "sentence", "symbols": ["adverbPhrase", (lexer.has("WS") ? {type: "WS"} : WS), "verbPhrase"], "postprocess": 
         function([adverb, , verb], location, reject) {
@@ -105,13 +139,13 @@ var grammar = {
             verb.modifiers = []
             return verb
         } },
-    {"name": "verbPhrase", "symbols": [(lexer.has("verb") ? {type: "verb"} : verb), (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("preposition") ? {type: "preposition"} : preposition), (lexer.has("WS") ? {type: "WS"} : WS), "nounPhrase"], "postprocess": 
+    {"name": "verbPhrase", "symbols": [(lexer.has("verb") ? {type: "verb"} : verb), (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("adverbialPreposition") ? {type: "adverbialPreposition"} : adverbialPreposition), (lexer.has("WS") ? {type: "WS"} : WS), "nounPhrase"], "postprocess": 
         function([verb, , preposition, , noun], location, reject) {
             verb.object = noun
             verb.modifiers = [preposition]
             return verb
         } },
-    {"name": "verbPhrase", "symbols": [(lexer.has("verb") ? {type: "verb"} : verb), (lexer.has("WS") ? {type: "WS"} : WS), "nounPhrase", (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("preposition") ? {type: "preposition"} : preposition)], "postprocess": 
+    {"name": "verbPhrase", "symbols": [(lexer.has("verb") ? {type: "verb"} : verb), (lexer.has("WS") ? {type: "WS"} : WS), "nounPhrase", (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("adverbialPreposition") ? {type: "adverbialPreposition"} : adverbialPreposition)], "postprocess": 
         function([verb, , noun, , preposition], location, reject) {
             verb.object = noun
             verb.modifiers = [preposition]
@@ -119,12 +153,22 @@ var grammar = {
         } },
     {"name": "verbPhrase", "symbols": ["verbPhrase", (lexer.has("WS") ? {type: "WS"} : WS), "prepositionPhrase"], "postprocess": 
         function([verb, , [preposition, , noun]], location, reject) {
-            verb.indirect = noun
+            let key = prepositionTypes[preposition] || 'indirect'
+            if (verb[key]) {
+                return reject
+            }
+            verb[key] = noun
+            return verb
+        } },
+    {"name": "verbPhrase", "symbols": [(lexer.has("verb") ? {type: "verb"} : verb), (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("string") ? {type: "string"} : string)], "postprocess": 
+        function([verb, , string], location, reject) {
+            verb.object = string
             return verb
         } },
     {"name": "prepositionPhrase", "symbols": [(lexer.has("preposition") ? {type: "preposition"} : preposition), (lexer.has("WS") ? {type: "WS"} : WS), "nounPhrase"]},
     {"name": "adverbPhrase", "symbols": [(lexer.has("adverb") ? {type: "adverb"} : adverb)], "postprocess": id},
     {"name": "nounPhrase", "symbols": ["singleNoun"]},
+    {"name": "nounPhrase", "symbols": [(lexer.has("pronoun") ? {type: "pronoun"} : pronoun)], "postprocess": id},
     {"name": "nounPhrase", "symbols": ["nounPhrase", (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("conjunction") ? {type: "conjunction"} : conjunction), (lexer.has("WS") ? {type: "WS"} : WS), "nounPhrase"], "postprocess": 
         function([noun1, , conjunction, , noun2], location, reject) {
             return [noun1, noun2]
@@ -140,18 +184,51 @@ var grammar = {
             noun.descriptors = []
             return noun
         } },
+    {"name": "singleNoun", "symbols": [(lexer.has("noun") ? {type: "noun"} : noun), (lexer.has("WS") ? {type: "WS"} : WS), "adjectivePhrase"], "postprocess": 
+        function([noun, , adjectives], location, reject) {
+            //console.log(arguments)
+            // noun = Object.assign({}, noun)
+            // noun.descriptors = noun.descriptors.slice()
+            noun.descriptors = [...adjectives]
+            return noun
+        } },
     {"name": "singleNoun", "symbols": [(lexer.has("adjective") ? {type: "adjective"} : adjective), (lexer.has("WS") ? {type: "WS"} : WS), "singleNoun"], "postprocess": 
         function([adjective, , noun], location, reject) {
+            noun = Object.assign({}, noun)
+            noun.descriptors = noun.descriptors.slice()
             noun.descriptors.push(adjective)
+            return noun
+        } },
+    {"name": "singleNoun$ebnf$1", "symbols": [(lexer.has("adjective") ? {type: "adjective"} : adjective)], "postprocess": id},
+    {"name": "singleNoun$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "singleNoun", "symbols": [(lexer.has("noun") ? {type: "noun"} : noun), (lexer.has("WS") ? {type: "WS"} : WS), "singleNoun$ebnf$1", (lexer.has("WS") ? {type: "WS"} : WS), "adjectivePhrase"], "postprocess": 
+        function([noun, , adjective, , adjectives], location, reject) {
+            // noun = Object.assign({}, noun)
+            // noun.descriptors = noun.descriptors.slice()
+            noun.descriptors = [adjective]
+            noun.descriptors = noun.descriptors.concat(adjectives)
             return noun
         } },
     {"name": "singleNoun", "symbols": [(lexer.has("deteterminer") ? {type: "deteterminer"} : deteterminer), (lexer.has("WS") ? {type: "WS"} : WS), "singleNoun"], "postprocess": 
         function([determiner, , noun], location, reject) {
             noun.determiner = determiner
             return noun
-        } }
+        } },
+    {"name": "adjectivePhrase$ebnf$1$subexpression$1", "symbols": [(lexer.has("adjectivalPronoun") ? {type: "adjectivalPronoun"} : adjectivalPronoun), (lexer.has("WS") ? {type: "WS"} : WS)]},
+    {"name": "adjectivePhrase$ebnf$1", "symbols": ["adjectivePhrase$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "adjectivePhrase$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "adjectivePhrase", "symbols": ["adjectivePhrase$ebnf$1", (lexer.has("complexAdjective") ? {type: "complexAdjective"} : complexAdjective)], "postprocess": ([, adjective]) => [adjective]},
+    {"name": "adjectivePhrase$ebnf$2$subexpression$1", "symbols": [(lexer.has("adjectivalPronoun") ? {type: "adjectivalPronoun"} : adjectivalPronoun), (lexer.has("WS") ? {type: "WS"} : WS)]},
+    {"name": "adjectivePhrase$ebnf$2", "symbols": ["adjectivePhrase$ebnf$2$subexpression$1"], "postprocess": id},
+    {"name": "adjectivePhrase$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "adjectivePhrase$ebnf$3$subexpression$1$ebnf$1", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
+    {"name": "adjectivePhrase$ebnf$3$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "adjectivePhrase$ebnf$3$subexpression$1", "symbols": ["adjectivePhrase$ebnf$3$subexpression$1$ebnf$1", (lexer.has("conjunctionPunctuation") ? {type: "conjunctionPunctuation"} : conjunctionPunctuation)]},
+    {"name": "adjectivePhrase$ebnf$3", "symbols": ["adjectivePhrase$ebnf$3$subexpression$1"], "postprocess": id},
+    {"name": "adjectivePhrase$ebnf$3", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "adjectivePhrase", "symbols": ["adjectivePhrase$ebnf$2", (lexer.has("complexAdjective") ? {type: "complexAdjective"} : complexAdjective), "adjectivePhrase$ebnf$3", (lexer.has("WS") ? {type: "WS"} : WS), "adjectivePhrase"], "postprocess": ([, adjective1, , , [adjective2]]) => [adjective1, adjective2]}
 ]
-  , ParserStart: "input"
+  , ParserStart: "line"
 }
 if (typeof module !== 'undefined'&& typeof module.exports !== 'undefined') {
    module.exports = grammar;

@@ -17,6 +17,13 @@ let lexer = moo.compile({
     //         'kw2-test': 'test1',
     //     },
     // },
+    complexAdjective: [
+        /(?:(?:your|my) )?aunt(?:ie)? gave (?:you|me)/,
+        /(?:you|i)? don\'?t know what(?: it is)?/,
+    ],
+    adjectivalPronoun: [
+        'which',
+    ],
     conjunction: [
         'and',
         'then',
@@ -27,12 +34,16 @@ let lexer = moo.compile({
     noun: [
         'rock',
         'stick',
+        'everything',
+        'all',
         'thing',
     ],
     verb: [
         'get',
+        'take',
         'put',
         'pick',
+        'say',
     ],
     deteterminer: [
         'a',
@@ -46,7 +57,20 @@ let lexer = moo.compile({
         'at',
         'in',
         'with',
-        'up'
+        'using',
+        'from',
+        'except',
+    ],
+    pronoun: [
+        'it',
+        'them',
+        'those',
+        'him',
+        'her',
+        'us',
+    ],
+    adverbialPreposition: [
+        'up',
     ],
     adverb: [
         'quickly',
@@ -59,9 +83,17 @@ let lexer = moo.compile({
     number: /0|[1-9][0-9]*/,
     // TODO: should these be non greedy?
     // Remember that one of the format functions below must match this.
+    // Consider adding a token that includes a "," for occasions when that would be allowed and ignored.
     WS: /[ \t]+/,
     word: /[a-zA-Z]/
 })
+
+let prepositionTypes = {
+    from: 'from',
+    except: 'except',
+    using: 'tool',
+    with: 'tool',
+}
 %}
 
 # Pass your lexer object using the @lexer option:
@@ -74,11 +106,15 @@ let lexer = moo.compile({
 #     }
 # }
 # %}
-input -> %WS:? sentence delimiter sentence T:? %WS:? {% ([, sentence1, , sentence2]) => [sentence1, sentence2] %}
+line -> %WS:? input T:? %WS:? {% ([, input]) => input %}
+
+input -> sentence {% ([sentence]) => [sentence] %}
+    | sentence D input {% ([sentence, , sentences]) => [sentence, ...sentences] %}
+
 
 T -> %WS:? %terminator
 
-delimiter -> T %WS
+D -> T %WS
     # Consider adding:
     # and,
     # Consider adding:
@@ -109,13 +145,13 @@ verbPhrase -> %verb %WS nounPhrase {%
         verb.modifiers = []
         return verb
     } %}
-    | %verb %WS %preposition %WS nounPhrase {%
+    | %verb %WS %adverbialPreposition %WS nounPhrase {%
     function([verb, , preposition, , noun], location, reject) {
         verb.object = noun
         verb.modifiers = [preposition]
         return verb
     } %}
-    | %verb %WS nounPhrase %WS %preposition {%
+    | %verb %WS nounPhrase %WS %adverbialPreposition {%
     function([verb, , noun, , preposition], location, reject) {
         verb.object = noun
         verb.modifiers = [preposition]
@@ -123,7 +159,16 @@ verbPhrase -> %verb %WS nounPhrase {%
     } %}
     | verbPhrase %WS prepositionPhrase {%
     function([verb, , [preposition, , noun]], location, reject) {
-        verb.indirect = noun
+        let key = prepositionTypes[preposition] || 'indirect'
+        if (verb[key]) {
+            return reject
+        }
+        verb[key] = noun
+        return verb
+    } %}
+    | %verb %WS %string {%
+    function([verb, , string], location, reject) {
+        verb.object = string
         return verb
     } %}
 
@@ -132,6 +177,7 @@ prepositionPhrase -> %preposition %WS nounPhrase
 adverbPhrase -> %adverb {% id %}
 
 nounPhrase -> singleNoun
+    | %pronoun {% id %}
     | nounPhrase %WS %conjunction %WS nounPhrase {%
     function([noun1, , conjunction, , noun2], location, reject) {
         return [noun1, noun2]
@@ -147,9 +193,28 @@ singleNoun -> %noun {%
         noun.descriptors = []
         return noun
     } %}
+    | %noun %WS adjectivePhrase {%
+    function([noun, , adjectives], location, reject) {
+        //console.log(arguments)
+        // noun = Object.assign({}, noun)
+        // noun.descriptors = noun.descriptors.slice()
+        noun.descriptors = [...adjectives]
+        return noun
+    } %}
     | %adjective %WS singleNoun {%
     function([adjective, , noun], location, reject) {
+        noun = Object.assign({}, noun)
+        noun.descriptors = noun.descriptors.slice()
         noun.descriptors.push(adjective)
+        return noun
+    } %}
+    # Still unsure about this one.
+    | %noun %WS %adjective:? %WS adjectivePhrase {%
+    function([noun, , adjective, , adjectives], location, reject) {
+        // noun = Object.assign({}, noun)
+        // noun.descriptors = noun.descriptors.slice()
+        noun.descriptors = [adjective]
+        noun.descriptors = noun.descriptors.concat(adjectives)
         return noun
     } %}
     | %deteterminer %WS singleNoun {%
@@ -157,3 +222,15 @@ singleNoun -> %noun {%
         noun.determiner = determiner
         return noun
     } %}
+
+adjectivePhrase -> (%adjectivalPronoun %WS):? %complexAdjective  {% ([, adjective]) => [adjective] %}
+    | (%adjectivalPronoun %WS):? %complexAdjective (%WS:? %conjunctionPunctuation):? %WS adjectivePhrase {% ([, adjective1, , , [adjective2]]) => [adjective1, adjective2] %}
+    # | %complexAdjective {% (data) => {
+    #     let [adjective] = data
+    #     return adjective
+    # } %}
+    # | %complexAdjective {% (data) => {
+    #     console.log('yo')
+    #     let [adjective] = data
+    #     return adjective
+    # } %}
