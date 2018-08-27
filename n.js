@@ -101,11 +101,13 @@ var grammar = {
     ParserRules: [
     {"name": "line$ebnf$1", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
     {"name": "line$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "line$subexpression$1", "symbols": ["input"]},
+    {"name": "line$subexpression$1", "symbols": ["incompleteSentence"]},
     {"name": "line$ebnf$2", "symbols": ["T"], "postprocess": id},
     {"name": "line$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
     {"name": "line$ebnf$3", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
     {"name": "line$ebnf$3", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "line", "symbols": ["line$ebnf$1", "input", "line$ebnf$2", "line$ebnf$3"], "postprocess": ([, input]) => input},
+    {"name": "line", "symbols": ["line$ebnf$1", "line$subexpression$1", "line$ebnf$2", "line$ebnf$3"], "postprocess": ([, input]) => input},
     {"name": "input", "symbols": ["sentence"], "postprocess": ([sentence]) => [sentence]},
     {"name": "input", "symbols": ["sentence", "D", "input"], "postprocess": ([sentence, , sentences]) => [sentence, ...sentences]},
     {"name": "T$ebnf$1", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
@@ -118,6 +120,18 @@ var grammar = {
     {"name": "D$ebnf$2", "symbols": [(lexer.has("WS") ? {type: "WS"} : WS)], "postprocess": id},
     {"name": "D$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
     {"name": "D", "symbols": ["D$ebnf$2", (lexer.has("conjunctionPunctuation") ? {type: "conjunctionPunctuation"} : conjunctionPunctuation), (lexer.has("WS") ? {type: "WS"} : WS)]},
+    {"name": "incompleteSentence", "symbols": [(lexer.has("verb") ? {type: "verb"} : verb)], "postprocess":  ([verb]) => {
+            verb.modifiers = []
+            return verb
+        } },
+    {"name": "incompleteSentence", "symbols": ["adverbPhrase", (lexer.has("WS") ? {type: "WS"} : WS), "incompleteSentence"], "postprocess":  ([adverb, , verb]) => {
+            verb.modifiers.push(adverb)
+            return verb
+        } },
+    {"name": "incompleteSentence", "symbols": [(lexer.has("verb") ? {type: "verb"} : verb), (lexer.has("WS") ? {type: "WS"} : WS), (lexer.has("adverbialPreposition") ? {type: "adverbialPreposition"} : adverbialPreposition)], "postprocess":  ([verb, , adverb]) => {
+            verb.modifiers = [adverb]
+            return verb
+        } },
     {"name": "sentence", "symbols": ["verbPhrase"], "postprocess": id},
     {"name": "sentence", "symbols": ["adverbPhrase", (lexer.has("WS") ? {type: "WS"} : WS), "verbPhrase"], "postprocess": 
         function([adverb, , verb], location, reject) {

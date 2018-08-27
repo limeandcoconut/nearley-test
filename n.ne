@@ -106,7 +106,8 @@ let prepositionTypes = {
 #     }
 # }
 # %}
-line -> %WS:? input T:? %WS:? {% ([, input]) => input %}
+line -> %WS:? (input | incompleteSentence) T:? %WS:? {% ([, input]) => input %}
+    # | %WS:? incompleteSentence T:? %WS:?
 
 input -> sentence {% ([sentence]) => [sentence] %}
     | sentence D input {% ([sentence, , sentences]) => [sentence, ...sentences] %}
@@ -122,6 +123,40 @@ D -> T %WS
     # And normalizing for allowing a lack of space like so: "N,and N"
     | T:? %WS %conjunction %WS
     | %WS:? %conjunctionPunctuation %WS
+
+incompleteSentence -> %verb {% ([verb]) => {
+    verb.modifiers = []
+    return verb
+} %}
+incompleteSentence -> adverbPhrase %WS incompleteSentence {% ([adverb, , verb]) => {
+    verb.modifiers.push(adverb)
+    return verb
+} %}
+incompleteSentence -> %verb %WS %adverbialPreposition {% ([verb, , adverb]) => {
+    verb.modifiers = [adverb]
+    return verb
+} %}
+# incompleteSentence -> (adverbPhrase %WS):? %verb (%WS %adverbialPreposition):? {% ([adverb1, verb, adverb2]) => {
+#     adverb1 = adverb1 ? adverb2[0] : adverb1
+#     adverb2 = adverb2 ? adverb2[1] : adverb2
+#     verb.modifiers = [adverb1, adverb2]
+#     return verb
+# } %}
+# incompleteSentence -> (adverbPhrase %WS):? %verb (%WS %adverbialPreposition):? {% ([adverb1, verb, adverb2]) => {
+#     adverb1 = adverb1 ? adverb2[0] : adverb1
+#     adverb2 = adverb2 ? adverb2[1] : adverb2
+#     verb.modifiers = [adverb1, adverb2]
+#     return verb
+# } %}
+
+# incompleteVerbPhrase -> verb
+#     | verb (%WS %adverbialPreposition):?
+
+# incompleteSentence -> incompleteVerbPhrase
+#     | adverbPhrase %WS incompleteVerbPhrase
+
+# incompleteVerbPhrase -> verb
+#     | verb %WS %adverbialPreposition
 
 sentence -> verbPhrase {% id %}
     | adverbPhrase %WS verbPhrase {%
