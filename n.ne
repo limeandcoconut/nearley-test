@@ -106,7 +106,7 @@ let prepositionTypes = {
 #     }
 # }
 # %}
-line -> %WS:? (input | incompleteSentence) T:? %WS:? {% ([, input]) => input %}
+line -> %WS:? (input | incompleteSentence) T:? %WS:? {% ([, [input]]) => input %}
     # | %WS:? incompleteSentence T:? %WS:?
 
 input -> sentence {% ([sentence]) => [sentence] %}
@@ -124,18 +124,20 @@ D -> T %WS
     | T:? %WS %conjunction %WS
     | %WS:? %conjunctionPunctuation %WS
 
-incompleteSentence -> %verb {% ([verb]) => {
-    verb.modifiers = []
-    return verb
-} %}
-incompleteSentence -> adverbPhrase %WS incompleteSentence {% ([adverb, , verb]) => {
-    verb.modifiers.push(adverb)
-    return verb
-} %}
-incompleteSentence -> %verb %WS %adverbialPreposition {% ([verb, , adverb]) => {
-    verb.modifiers = [adverb]
-    return verb
-} %}
+incompleteSentence -> %verb {% (sentence) => {
+        sentence[0].modifiers = []
+        return sentence
+    } %}
+    | adverbPhrase %WS incompleteSentence {% ([adverb, , sentence]) => {
+        sentence[0].modifiers.push(adverb)
+        return sentence
+    } %}
+    | %verb %WS %adverbialPreposition {% ([verb, , adverb]) => {
+        verb.modifiers = [adverb]
+        return [verb]
+    } %}
+    | nounPhrase #{% (data) => {console.log(data); return [data[0]]} %}
+    # | nounPhrase {% id %}
 # incompleteSentence -> (adverbPhrase %WS):? %verb (%WS %adverbialPreposition):? {% ([adverb1, verb, adverb2]) => {
 #     adverb1 = adverb1 ? adverb2[0] : adverb1
 #     adverb2 = adverb2 ? adverb2[1] : adverb2
@@ -211,7 +213,7 @@ prepositionPhrase -> %preposition %WS nounPhrase
 
 adverbPhrase -> %adverb {% id %}
 
-nounPhrase -> singleNoun
+nounPhrase -> singleNoun {% id %}
     | %pronoun {% id %}
     | nounPhrase %WS %conjunction %WS nounPhrase {%
     function([noun1, , conjunction, , noun2], location, reject) {

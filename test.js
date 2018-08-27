@@ -6,6 +6,7 @@ const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))
 
 // Parse something!
 
+// parser.feed('the thing which your auntie gave you which you dont know what it is')
 parser.feed(' quietly quickly pick up')
 // parser.feed('say "bojuum".')
 // parser.feed('pick it up.')
