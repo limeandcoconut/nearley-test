@@ -32,7 +32,7 @@ let lexer = moo.compile({
         'pick',
         'say',
     ],
-    deteterminer: [
+    determiner: [
         'a',
         'the',
     ],
@@ -94,6 +94,7 @@ input -> sentence {% ([sentence]) => [sentence] %}
 
 T -> %WS:? %terminator
 
+# Delimiter
 D -> T %WS
     # Consider adding:
     # and,
@@ -211,7 +212,7 @@ singleNoun -> %noun {%
         noun.descriptors = noun.descriptors.concat(adjectives)
         return noun
     } %}
-    | %deteterminer %WS singleNoun {%
+    | %determiner %WS singleNoun {%
     function([determiner, , noun], location, reject) {
         noun.determiner = determiner
         return noun
