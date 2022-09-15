@@ -121,15 +121,17 @@ incompleteSentence -> %verb {% (sentence) => {
 sentence -> verbPhrase {% id %}
     | adverbPhrase %WS verbPhrase {%
     function([adverb, , verb], location, reject) {
-        verb = Object.assign({}, verb)
-        verb.modifiers = verb.modifiers.slice()
+        // verb = Object.assign({}, verb)
+        verb = JSON.parse(JSON.stringify(verb))
+        // verb.modifiers = verb.modifiers.slice()
         verb.modifiers.push(adverb)
         return verb
     } %}
     | verbPhrase %WS adverbPhrase {%
     function([verb, , adverb], location, reject) {
-        verb = Object.assign({}, verb)
-        verb.modifiers = verb.modifiers.slice()
+        // verb = Object.assign({}, verb)
+        verb = JSON.parse(JSON.stringify(verb))
+        // verb.modifiers = verb.modifiers.slice()
         verb.modifiers.push(adverb)
         return verb
     } %}
@@ -158,7 +160,8 @@ verbPhrase -> %verb %WS nounPhrase {%
         if (verb[key]) {
             return reject
         }
-        verb = Object.assign({}, verb)
+        // verb = Object.assign({}, verb)
+        verb = JSON.parse(JSON.stringify(verb))
         verb[key] = noun
         return verb
     } %}
